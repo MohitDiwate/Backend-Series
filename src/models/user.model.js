@@ -19,13 +19,11 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-    fullname: {
+    fullName: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
-      index: true,
     },
     avtar: {
       type: String, //Cloudinary URL
@@ -34,10 +32,12 @@ const userSchema = new mongoose.Schema(
     coverimage: {
       type: String,
     },
-    watchHistory: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Video",
-    },
+    watchHistory: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Video",
+      },
+    ],
     password: {
       type: String,
       required: [true, "User must have a password"],
@@ -50,11 +50,11 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre("save", async function (next) {
-  if (this.isModified("password")) {
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  }
+  if (!this.isModified("password")) return next();
+
+  const salt = await bcrypt.genSalt(12);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
 userSchema.methods.isPasswordCorrect = async function (password) {
@@ -67,7 +67,7 @@ userSchema.methods.generateAccessToken = function () {
       _id: this._id,
       username: this.username,
       email: this.email,
-      fullname: this.fullname,
+      fullName: this.fullName,
     },
     process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
