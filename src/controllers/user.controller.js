@@ -202,3 +202,111 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
     throw new ApiError(400, error?.message || "Invalid Access Token");
   }
 });
+
+export const changeUserPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+
+  const user = await User.findById(req.user._id);
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+
+  if (!isPasswordCorrect) {
+    throw new ApiError(404, "Invalid Password");
+  }
+
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password Changed Successfully!!"));
+});
+
+export const fetchedCurrentUser = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, req.user, "Current User Fetched Successfully!!")
+    );
+});
+
+export const updateAccountDetails = asyncHandler(async (req, res) => {
+  const { fullName, username, email } = req.body;
+
+  if (!(fullName && username && email)) {
+    throw new ApiError(404, "All fields are required!!");
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        fullName,
+        email,
+        username,
+      },
+    },
+    {
+      new: true,
+    }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedUser, "User Updated Successfully!!"));
+});
+
+export const updateUserAvtarFile = asyncHandler(async (req, res) => {
+  const avtarLocalPath = await req.file?.path;
+
+  if (!avtarLocalPath) {
+    throw new ApiError(404, "Avtar File is required");
+  }
+
+  const avtar = await fileUpload(avtarLocalPath);
+
+  if (!avtar.url) {
+    throw new ApiError(404, "Avtar File is required");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        avtar: avtar.url,
+      },
+    },
+    { new: true }
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Avtar File is Upadted Sucessfully"));
+});
+
+export const updateUserCoverImageFile = asyncHandler(async (req, res) => {
+  const coverImageLocalPath = await req.file?.path;
+
+  if (!coverImageLocalPath) {
+    throw new ApiError(404, "coverImage File is required");
+  }
+
+  const coverImage = await fileUpload(coverImageLocalPath);
+
+  if (!coverImage.url) {
+    throw new ApiError(404, "coverImage File is required");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        coverImage: coverImage.url,
+      },
+    },
+    { new: true }
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "coverImage File is Upadted Sucessfully"));
+});
